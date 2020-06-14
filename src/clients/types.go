@@ -10,6 +10,7 @@ const (
 const (
 	ProxyHealthURL = "/health"
 	RegisterURL    = "/register"
+	ServicesURL    = "/services"
 )
 
 // HeartbeatRequest TODO: add filter params

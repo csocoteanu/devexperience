@@ -6,11 +6,22 @@ import (
 	"fmt"
 )
 
+// ServiceInfos ...
+type ServiceInfos struct {
+	Services []ServiceInfo `json:"services"`
+}
+
+// ServiceInfo ...
+type ServiceInfo struct {
+	ServiceName string           `json:"service_name"`
+	Registrants []RegistrantInfo `json:"registrants"`
+}
+
 // RegistrantInfo ...
 type RegistrantInfo struct {
-	ControlAddress string
-	DataAddress    string
-	ServiceName    string
+	ControlAddress string `json:"control_address"`
+	DataAddress    string `json:"data_address"`
+	ServiceName    string `json:"service_name"`
 }
 
 // NewRegistrantInfo creates a new registrant info instance

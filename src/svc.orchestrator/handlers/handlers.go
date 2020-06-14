@@ -24,6 +24,7 @@ func NewAPIManager(registry types.ServiceRegistry) *APIManager {
 
 func (m *APIManager) RegisterRoutes() {
 	http.HandleFunc(clients.RegisterURL, m.handleRegister)
+	http.HandleFunc(clients.ServicesURL, m.handleGetServices)
 }
 
 func (m *APIManager) handleRegister(w http.ResponseWriter, req *http.Request) {
@@ -49,6 +50,43 @@ func (m *APIManager) handleRegister(w http.ResponseWriter, req *http.Request) {
 	}
 
 	respBytes, err := json.Marshal(registerResp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(respBytes)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (m *APIManager) handleGetServices(w http.ResponseWriter, req *http.Request) {
+	log.Printf("Handling get services!")
+
+	if req.Method != http.MethodGet {
+		log.Printf("Got unsupported method=%s", req.Method)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	services, err := m.registry.GetServices()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	servicesResp := types.ServiceInfos{}
+
+	for serviceName, sidecars := range services {
+		si := types.ServiceInfo{
+			ServiceName: serviceName,
+			Registrants: sidecars,
+		}
+		servicesResp.Services = append(servicesResp.Services, si)
+	}
+
+	respBytes, err := json.Marshal(servicesResp)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
