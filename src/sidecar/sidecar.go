@@ -61,7 +61,7 @@ func (s *Proxy) String() string {
 }
 
 func (s *Proxy) register() error {
-	log.Printf("Registering to service: %s", s.orchestratorAddress)
+	log.Printf("Registering to service=%s control address=%s", s.orchestratorAddress, s.controlAddress)
 
 	var err error
 	var resp *clients.RegisterResponse
@@ -69,7 +69,7 @@ func (s *Proxy) register() error {
 
 	if err = expRetrier.Run(func() error {
 		req := clients.RegisterRequest{
-			ControlAddress: s.controlAddress,
+			ControlAddress: fmt.Sprintf("http://%s", s.controlAddress),
 			ServiceName:    s.serviceName,
 			DataAddress:    s.dataAddress,
 		}

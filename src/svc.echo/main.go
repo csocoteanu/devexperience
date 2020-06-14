@@ -25,7 +25,7 @@ func main() {
 	// start control plane
 	proxy := sidecar.NewProxy(
 		"http://localhost:8500",
-		fmt.Sprintf("http://localhost:%d", *controlPort),
+		fmt.Sprintf("localhost:%d", *controlPort),
 		"echo",
 		fmt.Sprintf("http://localhost:%d", *appLocalPort))
 	proxy.Start()

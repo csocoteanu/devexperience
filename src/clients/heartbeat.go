@@ -22,8 +22,8 @@ func NewHeartbeatClient(address string) HeartbeatClient {
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
+				Timeout:   5 * time.Second,
+				KeepAlive: 5 * time.Second,
 			}).DialContext,
 			DisableCompression:    false,
 			DisableKeepAlives:     false,
@@ -65,7 +65,7 @@ func (c *heartbeatClient) Heartbeat(ctx context.Context, req *HeartbeatRequest) 
 	result := HeartbeatResponse{}
 	d := json.NewDecoder(httpResp.Body)
 	d.UseNumber()
-	if err := d.Decode(result); err != nil {
+	if err := d.Decode(&result); err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal heartbeat response")
 	}
 
