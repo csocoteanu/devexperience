@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -138,13 +140,20 @@ func (s *Proxy) handleHeartbeat(w http.ResponseWriter, req *http.Request) {
 
 	s.setUpdatedTime()
 
+	memStats := runtime.MemStats{}
+	runtime.ReadMemStats(&memStats)
+
+	hostname, _ := os.Hostname()
+
 	resp := clients.HeartbeatResponse{
-		// TODO: collect stats
 		Stats: []clients.Stats{
 			{
-				CPU:     20,
-				Mem:     500,
-				Threads: 12,
+				TS:            time.Now().UTC(),
+				ServiceID:     s.serviceName + hostname,
+				CPU:           20,
+				Mem:           float64(memStats.Sys),
+				Threads:       float64(runtime.NumGoroutine()),
+				NumGoroutines: float64(runtime.NumGoroutine()),
 			},
 		},
 	}

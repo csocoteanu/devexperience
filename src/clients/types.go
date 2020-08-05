@@ -1,6 +1,9 @@
 package clients
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 const (
 	RegisterSuccess = iota
@@ -11,6 +14,7 @@ const (
 	ProxyHealthURL = "/health"
 	RegisterURL    = "/register"
 	ServicesURL    = "/services"
+	StatsURL       = "/stats"
 )
 
 // HeartbeatRequest TODO: add filter params
@@ -21,11 +25,31 @@ type HeartbeatResponse struct {
 	Stats []Stats `json:"stats"`
 }
 
+type Aggregation struct {
+	MetricID  string    `json:"metric_id"`
+	TS        time.Time `json:"time"`
+	ServiceID string    `json:"service_id"`
+	Max       float64   `json:"max"`
+	Min       float64   `json:"min"`
+	Average   float64   `json:"avg"`
+	NumValues int       `json:"val"`
+}
+
+type DataPoint struct {
+	MetricID  string
+	TS        time.Time
+	ServiceID string
+	Value     float64
+}
+
 // Stats is the json containing relevant info about the host
 type Stats struct {
-	CPU     int `json:"cpu"`
-	Mem     int `json:"mem"`
-	Threads int `json:"threads"`
+	TS            time.Time `json:"time"`
+	ServiceID     string    `json:"service_id"`
+	CPU           float64   `json:"cpu"`
+	Mem           float64   `json:"mem"`
+	Threads       float64   `json:"threads"`
+	NumGoroutines float64   `json:"num_goroutines"`
 }
 
 // RegisterRequest is the message sent by the host to the orchestrator

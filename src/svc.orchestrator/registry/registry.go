@@ -13,14 +13,16 @@ import (
 const maxHeartBeatRetries = 1
 
 type serviceRegistry struct {
+	aggregator            *MetricsAggregator
 	healthCheckers        map[string][]*healthChecker
 	healthCheckersLock    *sync.RWMutex
 	healthCheckerExitChan chan types.RegistrantInfo
 }
 
 // NewServiceRegistry creates a new service registry instance
-func NewServiceRegistry() *serviceRegistry {
+func NewServiceRegistry(aggregator *MetricsAggregator) *serviceRegistry {
 	s := serviceRegistry{
+		aggregator:            aggregator,
 		healthCheckers:        make(map[string][]*healthChecker),
 		healthCheckerExitChan: make(chan types.RegistrantInfo),
 		healthCheckersLock:    &sync.RWMutex{},
@@ -112,7 +114,7 @@ func (s *serviceRegistry) load(rInfos ...types.RegistrantInfo) error {
 			}
 		}
 
-		hChecker := newHealthChecker(rInfo, s.healthCheckerExitChan)
+		hChecker := newHealthChecker(rInfo, s.healthCheckerExitChan, s.aggregator)
 		s.healthCheckers[rInfo.ServiceName] = append(s.healthCheckers[rInfo.ServiceName], hChecker)
 
 		log.Printf("Succesfully registered service=%s address=%s", rInfo.ServiceName, rInfo.ControlAddress)

@@ -7,27 +7,29 @@ import (
 	"log"
 	"time"
 
-	"svc.orchestrator/types"
-
 	"github.com/eapache/go-resiliency/retrier"
+	"svc.orchestrator/storage"
+	"svc.orchestrator/types"
 )
 
 type healthChecker struct {
-	info   types.RegistrantInfo
-	ticker *time.Ticker
-	quit   chan struct{}
-	done   chan types.RegistrantInfo
-	client clients.HeartbeatClient
+	info       types.RegistrantInfo
+	ticker     *time.Ticker
+	quit       chan struct{}
+	done       chan types.RegistrantInfo
+	client     clients.HeartbeatClient
+	aggregator *MetricsAggregator
 }
 
-func newHealthChecker(info types.RegistrantInfo, done chan types.RegistrantInfo) *healthChecker {
+func newHealthChecker(info types.RegistrantInfo, done chan types.RegistrantInfo, aggregator *MetricsAggregator) *healthChecker {
 	client := clients.NewHeartbeatClient(info.ControlAddress)
 
 	r := healthChecker{
-		info:   info,
-		done:   done,
-		client: client,
-		quit:   make(chan struct{}),
+		info:       info,
+		done:       done,
+		client:     client,
+		quit:       make(chan struct{}),
+		aggregator: aggregator,
 	}
 
 	go r.startHealthCheck()
@@ -91,6 +93,33 @@ func (r *healthChecker) sendHeartBeat() error {
 
 	if resp == nil {
 		return fmt.Errorf("hearteat failed for %s", r.info)
+	}
+
+	for _, stats := range resp.Stats {
+		r.aggregator.AddDataPoint(&clients.DataPoint{
+			MetricID:  storage.MetricCPU,
+			ServiceID: stats.ServiceID,
+			TS:        stats.TS,
+			Value:     stats.CPU,
+		})
+		r.aggregator.AddDataPoint(&clients.DataPoint{
+			MetricID:  storage.MetricMemory,
+			ServiceID: stats.ServiceID,
+			TS:        stats.TS,
+			Value:     stats.Mem,
+		})
+		r.aggregator.AddDataPoint(&clients.DataPoint{
+			MetricID:  storage.MetricThreads,
+			ServiceID: stats.ServiceID,
+			TS:        stats.TS,
+			Value:     stats.Threads,
+		})
+		r.aggregator.AddDataPoint(&clients.DataPoint{
+			MetricID:  storage.MetricNumGoroutine,
+			ServiceID: stats.ServiceID,
+			TS:        stats.TS,
+			Value:     stats.NumGoroutines,
+		})
 	}
 
 	log.Printf("%s: %+v", r.info, resp.Stats)
