@@ -28,6 +28,16 @@ CREATE TABLE rollups300 (
    avg double,
    PRIMARY KEY (metric_id, ts, service_id)
 );
+CREATE TABLE rollups120 (
+   metric_id varchar,
+   ts timestamp,
+   service_id varchar,
+   min double,
+   max double,
+   avg double,
+   PRIMARY KEY (metric_id, ts, service_id)
+);
+
 DESCRIBE TABLES;
 exit
 ```
