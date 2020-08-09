@@ -16,6 +16,7 @@ import (
 const (
 	insertDataPointStmt = "INSERT INTO metrics (metric_id, ts, service_id, min, max, avg) VALUES (?, ?, ?, ?, ?, ?)"
 	selectDataPointStmt = "SELECT ts, service_id, min, max, avg FROM metrics WHERE metric_id = ? AND ts > ?"
+	insertRollup120Stmt = "INSERT INTO rollups120 (metric_id, ts, service_id, min, max, avg) VALUES (?, ?, ?, ?, ?, ?) IF NOT EXISTS"
 	insertRollup300Stmt = "INSERT INTO rollups300 (metric_id, ts, service_id, min, max, avg) VALUES (?, ?, ?, ?, ?, ?) IF NOT EXISTS"
 	selectRollup300Stmt = "SELECT metric_id, ts, service_id, min, max, avg FROM rollups300 WHERE metric_id = ? AND ts >= ?"
 )
@@ -96,7 +97,12 @@ func (d *DataStore) insertRollup300(agg *clients.Aggregation) error {
 	return d.session.Query(insertRollup300Stmt, agg.MetricID, agg.TS, agg.ServiceID, agg.Min, agg.Max, agg.Average).Exec()
 }
 
+func (d *DataStore) insertRollup120(agg *clients.Aggregation) error {
+	return d.session.Query(insertRollup120Stmt, agg.MetricID, agg.TS, agg.ServiceID, agg.Min, agg.Max, agg.Average).Exec()
+}
+
 func (d *DataStore) startRollup() error {
+	rollup120Timer := time.NewTicker(2 * time.Minute)
 	rollup300Timer := time.NewTicker(5 * time.Minute)
 
 	for {
@@ -119,8 +125,22 @@ func (d *DataStore) startRollup() error {
 				// TODO add rollups7200
 				// TODO add rollups86400
 				// ...
-				wg.Wait()
 			}
+			wg.Wait()
+		case <-rollup120Timer.C:
+			log.Println("Running rollup300")
+			wg := sync.WaitGroup{}
+			for _, metricID := range resourceMetrics {
+				wg.Add(1)
+				go func(metricID string) {
+					defer wg.Done()
+					err := d.runRollup(metricID, 120, d.selectRawDataQuery, d.insertRollup120)
+					if err != nil {
+						log.Println(err)
+					}
+				}(metricID)
+			}
+			wg.Wait()
 		}
 	}
 }
@@ -151,6 +171,7 @@ func (d *DataStore) runRollup(metricID string, aggInterval int64, queryPreviousR
 				}
 
 				delete(metrics, aggregationKey)
+				delete(latestInterval, aggregationKey)
 			}
 
 			// agg each value found in db
